@@ -4,8 +4,11 @@
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <fcntl.h>
-#include <string.h>
-
+#include <cstring>
+#include <string>
+using std::cout;
+using std::endl;
+using std::string;
 
 class server
 {
@@ -27,6 +30,8 @@ private:
     int listenfd;
     int epollfd;
     int port;
+    string username,password;
+    uint8_t authmethod;
     std::unordered_map<int,Connect*> fdmap;
     bool setNonBlocking(int fd);
     bool addIntoEpoll(int fd,void* ptr);
@@ -39,7 +44,8 @@ private:
     void establishmentHandle(int fd);
     void forwardingHandle(int fd);
 public:
-    server(int port):listenfd(-1),epollfd(-1),port(port) {}
+    server(int port,uint8_t authmethod,string username,string password)
+        :listenfd(-1),epollfd(-1),port(port),authmethod(authmethod),username(username),password(password) {}
     ~server(){}
     void run();
 };

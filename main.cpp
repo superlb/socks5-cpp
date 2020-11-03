@@ -1,7 +1,41 @@
+#include <unistd.h>
+#include <sstream>
 #include "server.h"
-int main()
+
+int main(int argc, char **argv)
 {
-    server myserver(1080);
+    int port = 1080;
+    uint8_t authmethod = 0x00;
+    string username = "root",password = "123456";
+    int ch;
+    while((ch=getopt(argc,argv,"ap:u:w:"))!=-1)
+    {
+        if(ch=='p')
+        {
+            std::stringstream mystream;
+            mystream<<optarg<<endl;
+            mystream>>port;
+        }
+        else if(ch=='a')
+        {
+            authmethod = 0x02;
+        }
+        else if(ch=='u')
+        {
+            username = optarg;
+        }
+        else if(ch=='w')
+        {
+            password = optarg;
+        }
+        else if(ch=='?')
+        {
+            cout<<"unknown option:"<<ch<<endl;
+            cout<<"server ends"<<endl;
+            return 0;
+        }
+    }
+    server myserver(port,authmethod,username,password);
     myserver.run();
     return 0;
 }
