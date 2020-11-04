@@ -14,7 +14,7 @@ bool server::addIntoEpoll(int fd,void* ptr)
     struct epoll_event event;
     event.data.ptr = ptr;
     event.data.fd = fd;
-    event.events = EPOLLOUT | EPOLLIN | EPOLLET;
+    event.events = EPOLLIN | EPOLLET;
     return epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&event) != -1;
 }
 bool server::delFromEpoll(int fd)
@@ -55,6 +55,7 @@ void server::delConnect(int fd)
         }
         fdmap.erase(it);
     }
+    close(fd);
 }
 
 void server::eventHandle(int fd)
@@ -178,6 +179,7 @@ void server::establishmentHandle(int fd)
                     }
                     memcpy(ip,buf+4,addlen);
                     memcpy(port,buf+4+addlen,2);
+                    recv(fd,buf,6 + addlen,0);
                 }
                 else if(addtype==0x03)//DOMAINNAME
                 {
@@ -188,10 +190,12 @@ void server::establishmentHandle(int fd)
                     }
                     uint8_t domainname[256];
                     memcpy(domainname,buf+5,addlen);
+                    domainname[addlen] = 0;
                     struct hostent* hostptr = gethostbyname((char*)domainname);
                     memcpy(ip,hostptr->h_addr,hostptr->h_length);
                     memcpy(port,buf+5+addlen,2);
                     //gethostbyname似乎指向的是一个static struct，不需要free
+                    recv(fd,buf,7 + addlen,0);
                 }
                 else if(addtype==0x04)//IPV6
                 {
@@ -201,7 +205,6 @@ void server::establishmentHandle(int fd)
                 {
                     //TODO
                 }
-                recv(fd,buf,6 + addlen,0);
 
                 struct sockaddr_in server_addr;
                 server_addr.sin_family = AF_INET;
@@ -209,6 +212,7 @@ void server::establishmentHandle(int fd)
                 server_addr.sin_port = *((uint16_t*)port);
 
                 uint8_t reply[10];
+                memset(reply,0,sizeof(reply));
                 int serverfd = socket(PF_INET,SOCK_STREAM,0);
                 if(serverfd < 0 || connect(serverfd,(struct sockaddr*)&server_addr,sizeof(server_addr)) < 0)
                 {
@@ -224,6 +228,7 @@ void server::establishmentHandle(int fd)
                         con->serverfd = serverfd;
                         fdmap[serverfd] = con;
                     }
+                    addIntoEpoll(serverfd,NULL);
                 }
                 reply[0] = 0x05;
                 reply[3] = 0x01;
@@ -254,7 +259,7 @@ void server::forwardingHandle(int fd)
             sendfd = con->clientfd;
         }
     }
-    constexpr int BUFF_SIZE = 4096;
+    constexpr int BUFF_SIZE = 1024*10;
     uint8_t buf[BUFF_SIZE];
     int len = recv(fd,buf,BUFF_SIZE,0);
     if(len < 0)
@@ -326,16 +331,16 @@ void server::forever()
     struct epoll_event events[MAX_EPOLL_EVENTS];
     while(1)
     {
-        int n = epoll_wait(epollfd, events, MAX_EPOLL_EVENTS, 0);
+        int n = epoll_wait(epollfd, events, MAX_EPOLL_EVENTS, -1);
         for(int i=0;i<n;++i)
         {
             if(events[i].data.fd==listenfd) 
             {
                 //新连接
                 struct sockaddr_in clientaddr;
-                socklen_t len;
+                socklen_t len = sizeof(clientaddr);
                 int connectfd = accept(listenfd, (struct sockaddr*)&clientaddr, &len);
-                cout<<"client "<<ntohl(clientaddr.sin_addr.s_addr)<<":"<<ntohs(clientaddr.sin_port)<<" is connecting"<<endl;
+                //cout<<"client "<<inet_ntoa(clientaddr.sin_addr)<<":"<<ntohs(clientaddr.sin_port)<<" is connecting,fd is "<<connectfd<<endl;
                 newConnect(connectfd);
             }
             else

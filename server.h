@@ -6,6 +6,9 @@
 #include <fcntl.h>
 #include <cstring>
 #include <string>
+#include <netinet/in.h>   
+#include <arpa/inet.h>
+#include <unistd.h>
 using std::cout;
 using std::endl;
 using std::string;
