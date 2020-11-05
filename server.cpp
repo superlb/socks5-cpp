@@ -122,8 +122,8 @@ void server::authHandle(int fd)
             if(len<3+buf[1]+buf[2+buf[1]])//1+1+username+1+password
                 return;
             recv(fd,buf,3+buf[1]+buf[2+buf[1]],0);
-            string cusername((char*)buf+2,(char*)buf+2+buf[1]);
-            string cpassword((char*)buf+2+buf[1],(char*)3+buf[1]+buf[2+buf[1]]);
+            std::string cusername((char*)buf+2,(char*)buf+2+buf[1]);
+            std::string cpassword((char*)buf+2+buf[1],(char*)3+buf[1]+buf[2+buf[1]]);
             uint8_t authstate = 0x01;
             if(username==cusername&&password==cpassword)
             {
@@ -280,13 +280,13 @@ void server::forwardingHandle(int fd)
 
 void server::run()
 {
-    cout<<"socks5server is starting at port "<<port<<endl;
+    std::cout<<"socks5server is starting at port "<<port<<std::endl;
 
     //创建监听套接字
     listenfd = socket(PF_INET,SOCK_STREAM,0);
     if(listenfd==-1)
     {
-        cout<<"create listenfd fail"<<endl;
+        std::cout<<"create listenfd fail"<<std::endl;
         return;
     }
 
@@ -300,14 +300,14 @@ void server::run()
     //绑定套接字到端口
     if(bind(listenfd,(struct sockaddr*)&addr,sizeof(addr)) < 0)
     {
-        cout<<"bind fail"<<endl;
+        std::cout<<"bind fail"<<std::endl;
         return;
     }
 
     //监听端口
     if(listen(listenfd,SOMAXCONN) < 0)
     {
-        cout<<"listen fail"<<endl;
+        std::cout<<"listen fail"<<std::endl;
         return;
     }
 
@@ -315,7 +315,7 @@ void server::run()
     epollfd = epoll_create1(0);
     if(epollfd < 0)
     {
-        cout<<"create epollfd fail"<<endl;
+        std::cout<<"create epollfd fail"<<std::endl;
         return;
     }
 
@@ -341,12 +341,12 @@ void server::forever()
                 socklen_t len = sizeof(clientaddr);
                 int connectfd = accept(listenfd, (struct sockaddr*)&clientaddr, &len);
                 //cout<<"client "<<inet_ntoa(clientaddr.sin_addr)<<":"<<ntohs(clientaddr.sin_port)<<" is connecting,fd is "<<connectfd<<endl;
-                newConnect(connectfd);
+                threadpool.add_task(std::bind(&server::newConnect,this,connectfd));
             }
             else
             {
                 //已有连接
-                eventHandle(events[i].data.fd);
+                threadpool.add_task(std::bind(&server::eventHandle,this,events[i].data.fd));
             }
             
         }

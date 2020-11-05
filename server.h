@@ -9,9 +9,7 @@
 #include <netinet/in.h>   
 #include <arpa/inet.h>
 #include <unistd.h>
-using std::cout;
-using std::endl;
-using std::string;
+#include "threadpool.h"
 
 class server
 {
@@ -30,10 +28,11 @@ private:
         Connect():state(AUTH),clientfd(-1),serverfd(-1){}
     };
     static constexpr int MAX_EPOLL_EVENTS = 1024;
+    ThreadPool threadpool;
     int listenfd;
     int epollfd;
     int port;
-    string username,password;
+    std::string username,password;
     uint8_t authmethod;
     std::unordered_map<int,Connect*> fdmap;
     bool setNonBlocking(int fd);
@@ -47,7 +46,7 @@ private:
     void establishmentHandle(int fd);
     void forwardingHandle(int fd);
 public:
-    server(int port,uint8_t authmethod,string username,string password)
+    server(int port,uint8_t authmethod,std::string username,std::string password)
         :listenfd(-1),epollfd(-1),port(port),authmethod(authmethod),username(username),password(password) {}
     ~server(){}
     void run();

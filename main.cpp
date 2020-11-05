@@ -6,14 +6,14 @@ int main(int argc, char **argv)
 {
     int port = 1080;
     uint8_t authmethod = 0x00;
-    string username = "root",password = "123456";
+    std::string username = "root",password = "123456";
     int ch;
     while((ch=getopt(argc,argv,"ap:u:w:"))!=-1)
     {
         if(ch=='p')
         {
             std::stringstream mystream;
-            mystream<<optarg<<endl;
+            mystream<<optarg<<std::endl;
             mystream>>port;
         }
         else if(ch=='a')
@@ -30,8 +30,8 @@ int main(int argc, char **argv)
         }
         else if(ch=='?')
         {
-            cout<<"unknown option:"<<ch<<endl;
-            cout<<"server ends"<<endl;
+            std::cout<<"unknown option:"<<ch<<std::endl;
+            std::cout<<"server ends"<<std::endl;
             return 0;
         }
     }
