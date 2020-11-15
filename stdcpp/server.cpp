@@ -26,9 +26,12 @@ bool server::delFromEpoll(int fd)
     return epoll_ctl(epollfd,EPOLL_CTL_DEL,fd,&event) != -1;
 }
 
-void server::newConnect(int fd)
+void server::newConnect()
 {
     //建立新连接
+    struct sockaddr_in clientaddr;
+    socklen_t len = sizeof(clientaddr);
+    int fd = accept(listenfd, (struct sockaddr*)&clientaddr, &len);
     addIntoEpoll(fd,NULL);
     Connect* con = new Connect();
     con->state = AUTH;
@@ -337,11 +340,7 @@ void server::forever()
             if(events[i].data.fd==listenfd) 
             {
                 //新连接
-                struct sockaddr_in clientaddr;
-                socklen_t len = sizeof(clientaddr);
-                int connectfd = accept(listenfd, (struct sockaddr*)&clientaddr, &len);
-                //cout<<"client "<<inet_ntoa(clientaddr.sin_addr)<<":"<<ntohs(clientaddr.sin_port)<<" is connecting,fd is "<<connectfd<<endl;
-                threadpool.add_task(std::bind(&server::newConnect,this,connectfd));
+                threadpool.add_task(std::bind(&server::newConnect,this));
             }
             else
             {
