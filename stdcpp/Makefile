@@ -17,4 +17,4 @@ threadpool.o: threadpool.h threadpool.cpp
 
 .PHONY: clean
 clean:
-	rm -f socks5server testclient server.o main.o testclient.o threadpool.o
+	rm -f socks5server testclient
